@@ -105,21 +105,33 @@
 
         // Button to copy terminal content
         document.getElementById('copy-btn').addEventListener('click', () => {
-            // Get terminal content
-            const terminalContent = term._core._core._buffer._buffer;
-            const contentString = terminalContent.toString();
+            // Retrieve all terminal content
+            const content = term.getDisplay().textContent;
 
             // Create a temporary textarea element
             const textarea = document.createElement('textarea');
-            textarea.value = contentString;
+            textarea.value = content;
             document.body.appendChild(textarea);
 
             // Select and copy content
+            textarea.focus();
             textarea.select();
-            document.execCommand('copy');
 
-            // Remove the temporary textarea
-            document.body.removeChild(textarea);
+            try {
+                // Attempt to copy content
+                const successful = document.execCommand('copy');
+                const message = successful ? 'Terminal content copied to clipboard' : 'Failed to copy terminal content';
+                console.log(message);
+
+                // Optional: Provide visual feedback to the user
+                alert(message);
+            } catch (err) {
+                console.error('Error copying to clipboard', err);
+                alert('Failed to copy terminal content');
+            } finally {
+                // Remove the temporary textarea
+                document.body.removeChild(textarea);
+            }
         });
 
         // Automatically resize the terminal on window resize
