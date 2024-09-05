@@ -24,15 +24,6 @@
             flex: 1;
             display: flex;
             background-color: black;
-            overflow: hidden; /* Ensure no scrollbars appear */
-            touch-action: manipulation; /* Improve touch interactions */
-        }
-        .xterm {
-            user-select: text; /* Enable text selection */
-            -webkit-user-select: text; /* For WebKit browsers */
-            -moz-user-select: text; /* For Firefox */
-            -ms-user-select: text; /* For Internet Explorer/Edge */
-            -webkit-touch-callout: none; /* Disable touch callout menu */
         }
         #controls {
             display: flex;
@@ -50,6 +41,35 @@
         }
         button:hover {
             background-color: #777;
+        }
+        #context-menu {
+            position: absolute;
+            display: none;
+            background-color: #333;
+            color: white;
+            border: 1px solid #555;
+            border-radius: 5px;
+            padding: 10px;
+            z-index: 1000;
+        }
+        #context-menu div {
+            padding: 5px;
+            cursor: pointer;
+        }
+        #context-menu div:hover {
+            background-color: #555;
+        }
+        #mobile-select-all {
+            display: none;
+            position: fixed;
+            bottom: 10px;
+            right: 10px;
+            background-color: #333;
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 1000;
+            cursor: pointer;
         }
     </style>
 </head>
@@ -73,6 +93,13 @@
     </div>
 
     <div id="terminal-container"></div>
+    <div id="mobile-select-all">Select All</div>
+
+    <div id="context-menu">
+        <div id="select-all">Select All</div>
+        <div id="copy">Copy</div>
+        <div id="cut">Cut</div>
+    </div>
 
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
@@ -128,10 +155,60 @@
         // File download functionality
         document.getElementById('download-btn').addEventListener('click', () => {
             const filename = prompt('Enter the filename to download from $HOME:');
-            if (filename) {
-                window.location.href = `/download/${filename}`;
-            }
+            window.location.href = `/download/${filename}`;
         });
+
+        // Custom context menu
+        const contextMenu = document.getElementById('context-menu');
+        const selectAll = document.getElementById('select-all');
+        const copy = document.getElementById('copy');
+        const cut = document.getElementById('cut');
+
+        term.element.addEventListener('contextmenu', (e) => {
+            e.preventDefault();
+            contextMenu.style.top = `${e.clientY}px`;
+            contextMenu.style.left = `${e.clientX}px`;
+            contextMenu.style.display = 'block';
+        });
+
+        document.addEventListener('click', () => {
+            contextMenu.style.display = 'none';
+        });
+
+        selectAll.addEventListener('click', () => {
+            term.selectAll();
+            contextMenu.style.display = 'none';
+        });
+
+        copy.addEventListener('click', () => {
+            document.execCommand('copy');
+            contextMenu.style.display = 'none';
+        });
+
+        cut.addEventListener('click', () => {
+            document.execCommand('cut');
+            contextMenu.style.display = 'none';
+        });
+
+        // Mobile Select All Button
+        const mobileSelectAll = document.getElementById('mobile-select-all');
+
+        mobileSelectAll.addEventListener('click', () => {
+            term.selectAll();
+        });
+
+        // Show the mobile select all button on mobile devices
+        function adjustMobileUI() {
+            if (window.innerWidth <= 768) {
+                mobileSelectAll.style.display = 'block';
+            } else {
+                mobileSelectAll.style.display = 'none';
+            }
+        }
+
+        // Adjust UI on load and resize
+        window.addEventListener('resize', adjustMobileUI);
+        adjustMobileUI();
     </script>
 </body>
 </html>
