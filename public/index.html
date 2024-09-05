@@ -24,9 +24,28 @@
             flex: 1;
             display: flex;
             background-color: black;
-            position: relative;
-            -webkit-user-select: text; /* Allow selection for mobile */
+            /* Enable text selection on both mobile and desktop */
             user-select: text;
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            -o-user-select: text;
+            touch-action: manipulation; /* Disable double-tap zoom on mobile */
+            padding: 10px;
+            font-size: 14px;
+        }
+        @media (hover: none) and (pointer: coarse) {
+            /* Specific adjustments for mobile devices */
+            #terminal-container {
+                font-size: 16px; /* Increase font size for mobile readability */
+            }
+        }
+        @media (hover: hover) and (pointer: fine) {
+            /* Specific adjustments for desktop devices */
+            #terminal-container {
+                padding: 5px; /* Reduce padding for desktop */
+                font-size: 14px; /* Set standard font size for desktop */
+            }
         }
         #controls {
             display: flex;
@@ -50,6 +69,11 @@
 <body>
     <div id="header">
         <div>Web Terminal</div>
+        <div id="file-upload">
+            <input type="file" id="file-input" />
+            <button id="upload-btn">Upload</button>
+            <button id="download-btn">Download</button>
+        </div>
     </div>
 
     <div id="controls">
@@ -66,45 +90,72 @@
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
     <script>
-        const term = new Terminal({
-            cursorBlink: true,
-        });
+        const term = new Terminal({ cursorBlink: true });
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
         term.open(document.getElementById('terminal-container'));
         fitAddon.fit();
 
+        // Adjust terminal for mobile and desktop
+        function adjustForDevice() {
+            if (/Mobi|Android/i.test(navigator.userAgent)) {
+                // Mobile-specific adjustments
+                term.setOption('fontSize', 16); // Larger font for readability on mobile
+                term.setOption('cursorStyle', 'bar'); // Bar cursor for mobile
+            } else {
+                // Desktop-specific adjustments
+                term.setOption('fontSize', 14); // Standard font size for desktop
+                term.setOption('cursorStyle', 'block'); // Block cursor for desktop
+            }
+        }
+        adjustForDevice();
+
         // Set up WebSocket connection
         const socket = new WebSocket(`ws://${window.location.host}`);
 
+        // Handle WebSocket connection and messages
         socket.onopen = () => console.log('WebSocket connection established');
         socket.onmessage = (event) => term.write(event.data);
         term.onData((data) => socket.send(data));
 
+        // Button to clear terminal screen
         document.getElementById('clear-btn').addEventListener('click', () => term.clear());
-        document.getElementById('save-btn').addEventListener('click', () => socket.send('\x13')); // Ctrl+S
-        document.getElementById('exit-btn').addEventListener('click', () => socket.send('\x18')); // Ctrl+X
-        document.getElementById('cancel-btn').addEventListener('click', () => socket.send('\x03')); // Ctrl+C
-        document.getElementById('back-btn').addEventListener('click', () => socket.send('cd ..\r'));
-        document.getElementById('session-btn').addEventListener('click', () => window.open('/', '_blank'));
-        window.addEventListener('resize', () => fitAddon.fit());
 
-        // Handle tap events on mobile to focus the terminal for typing
-        document.getElementById('terminal-container').addEventListener('touchstart', () => {
-            term.focus(); // Show keyboard for typing
+        // Button to send Ctrl+S (Save)
+        document.getElementById('save-btn').addEventListener('click', () => socket.send('\x13')); // Ctrl+S
+
+        // Button to send Ctrl+X (Exit)
+        document.getElementById('exit-btn').addEventListener('click', () => socket.send('\x18')); // Ctrl+X
+
+        // Button to send Ctrl+C (Cancel)
+        document.getElementById('cancel-btn').addEventListener('click', () => socket.send('\x03')); // Ctrl+C
+
+        // Button to navigate back (cd ..)
+        document.getElementById('back-btn').addEventListener('click', () => socket.send('cd ..\r'));
+
+        // Button to open a new terminal session in a new tab
+        document.getElementById('session-btn').addEventListener('click', () => {
+            window.open('/', '_blank');
         });
 
-        // Enable long press text selection
-        document.getElementById('terminal-container').style.webkitUserSelect = "text"; // Allow text selection on iOS
-        document.getElementById('terminal-container').style.userSelect = "text"; // Allow text selection on Android/desktop
+        // Automatically resize the terminal on window resize
+        window.addEventListener('resize', () => fitAddon.fit());
 
-        // Handle text selection on long press or double tap
-        document.getElementById('terminal-container').addEventListener('touchstart', (e) => {
-            let touchTimeout = setTimeout(() => {
-                term.blur(); // Unfocus the terminal to avoid interference with typing
-            }, 500); // Trigger after 500ms for long press
+        // File upload functionality
+        document.getElementById('upload-btn').addEventListener('click', () => {
+            const fileInput = document.getElementById('file-input');
+            const formData = new FormData();
+            formData.append('file', fileInput.files[0]);
 
-            e.target.addEventListener('touchend', () => clearTimeout(touchTimeout));
+            fetch('/upload', { method: 'POST', body: formData })
+                .then(response => response.text())
+                .then(data => console.log(data));
+        });
+
+        // File download functionality
+        document.getElementById('download-btn').addEventListener('click', () => {
+            const filename = prompt('Enter the filename to download from $HOME:');
+            window.location.href = `/download/${filename}`;
         });
     </script>
 </body>
