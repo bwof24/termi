@@ -25,11 +25,10 @@
             display: flex;
             background-color: black;
             position: relative;
-            -webkit-user-select: text; /* Allow text selection */
-            -moz-user-select: text;
-            -ms-user-select: text;
-            user-select: text;
-            touch-action: auto; /* Enable touch action */
+            -webkit-user-select: none; /* Initially disable selection */
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
         }
         #controls {
             display: flex;
@@ -48,27 +47,11 @@
         button:hover {
             background-color: #777;
         }
-        /* Styling for copy notification */
-        #copy-notification {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background-color: #00C851;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            display: none;
-        }
     </style>
 </head>
 <body>
     <div id="header">
         <div>Web Terminal</div>
-        <div id="file-upload">
-            <input type="file" id="file-input" />
-            <button id="upload-btn">Upload</button>
-            <button id="download-btn">Download</button>
-        </div>
     </div>
 
     <div id="controls">
@@ -78,45 +61,20 @@
         <button id="cancel-btn">Cancel</button>
         <button id="back-btn">Back</button>
         <button id="session-btn">New Session</button>
-        <button id="copy-btn">Copy</button>
     </div>
 
-    <div id="terminal-container">
-        <div id="copy-notification">Copied!</div>
-    </div>
+    <div id="terminal-container"></div>
 
     <script src="https://cdn.jsdelivr.net/npm/xterm/lib/xterm.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit/lib/xterm-addon-fit.js"></script>
     <script>
         const term = new Terminal({
             cursorBlink: true,
-            disableStdin: false,  // Allow user input
-            selection: {
-                enabled: true  // Enable text selection
-            }
         });
         const fitAddon = new FitAddon.FitAddon();
         term.loadAddon(fitAddon);
         term.open(document.getElementById('terminal-container'));
         fitAddon.fit();
-
-        // Override touch event handling to enable text selection on mobile devices
-        function enableTextSelectionOnMobile() {
-            const terminalContainer = document.getElementById('terminal-container');
-            terminalContainer.addEventListener('touchstart', (e) => {
-                if (e.touches.length === 1) {
-                    // Allow default text selection behavior on long press
-                    terminalContainer.style.pointerEvents = 'auto';
-                }
-            });
-            terminalContainer.addEventListener('touchend', (e) => {
-                // Revert pointer events to prevent interference with terminal input
-                terminalContainer.style.pointerEvents = 'none';
-            });
-        }
-
-        // Call the function to enable text selection on mobile devices
-        enableTextSelectionOnMobile();
 
         // Set up WebSocket connection
         const socket = new WebSocket(`ws://${window.location.host}`);
@@ -149,41 +107,33 @@
         // Automatically resize the terminal on window resize
         window.addEventListener('resize', () => fitAddon.fit());
 
-        // File upload functionality
-        document.getElementById('upload-btn').addEventListener('click', () => {
-            const fileInput = document.getElementById('file-input');
-            const formData = new FormData();
-            formData.append('file', fileInput.files[0]);
+        // Enable/disable text selection based on focus
+        const terminalContainer = document.getElementById('terminal-container');
+        
+        // Function to disable selection
+        function disableTextSelection() {
+            terminalContainer.style.webkitUserSelect = "none";
+            terminalContainer.style.userSelect = "none";
+        }
 
-            fetch('/upload', { method: 'POST', body: formData })
-                .then(response => response.text())
-                .then(data => console.log(data));
+        // Function to enable selection
+        function enableTextSelection() {
+            terminalContainer.style.webkitUserSelect = "text";
+            terminalContainer.style.userSelect = "text";
+        }
+
+        // Enable text selection when terminal is not focused
+        term.onBlur(() => {
+            enableTextSelection();
         });
 
-        // File download functionality
-        document.getElementById('download-btn').addEventListener('click', () => {
-            const filename = prompt('Enter the filename to download from $HOME:');
-            window.location.href = `/download/${filename}`;
+        // Disable text selection when terminal is focused to allow typing
+        term.onFocus(() => {
+            disableTextSelection();
         });
 
-        // Copy button functionality
-        document.getElementById('copy-btn').addEventListener('click', () => {
-            const selection = window.getSelection();
-            const selectedText = selection.toString();
-            if (selectedText.length > 0) {
-                navigator.clipboard.writeText(selectedText).then(() => {
-                    const copyNotification = document.getElementById('copy-notification');
-                    copyNotification.style.display = 'block';
-                    setTimeout(() => {
-                        copyNotification.style.display = 'none';
-                    }, 1500);
-                }).catch(err => {
-                    console.error('Failed to copy text: ', err);
-                });
-            } else {
-                alert('Please select text to copy.');
-            }
-        });
+        // Initially disable text selection
+        disableTextSelection();
     </script>
 </body>
 </html>
