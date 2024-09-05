@@ -25,10 +25,11 @@
             display: flex;
             background-color: black;
             position: relative;
-            -webkit-user-select: none; /* Initially disable selection */
+            -webkit-user-select: none; /* Prevent accidental selection */
             -moz-user-select: none;
             -ms-user-select: none;
             user-select: none;
+            touch-action: manipulation; /* Allow touch interactions for terminal input */
         }
         #controls {
             display: flex;
@@ -107,29 +108,34 @@
         // Automatically resize the terminal on window resize
         window.addEventListener('resize', () => fitAddon.fit());
 
-        // Enable/disable text selection based on focus
-        const terminalContainer = document.getElementById('terminal-container');
-        
-        // Function to disable selection
-        function disableTextSelection() {
-            terminalContainer.style.webkitUserSelect = "none";
-            terminalContainer.style.userSelect = "none";
-        }
-
-        // Function to enable selection
-        function enableTextSelection() {
-            terminalContainer.style.webkitUserSelect = "text";
-            terminalContainer.style.userSelect = "text";
-        }
-
-        // Enable text selection when terminal is not focused
-        term.onBlur(() => {
-            enableTextSelection();
+        // Ensure mobile devices can trigger keyboard properly
+        document.getElementById('terminal-container').addEventListener('touchstart', () => {
+            // Focus the terminal when touched on mobile
+            term.focus();
         });
 
-        // Disable text selection when terminal is focused to allow typing
-        term.onFocus(() => {
-            disableTextSelection();
+        // Function to enable/disable text selection for long press on mobile
+        function enableTextSelection() {
+            document.getElementById('terminal-container').style.webkitUserSelect = "text";
+            document.getElementById('terminal-container').style.userSelect = "text";
+        }
+
+        function disableTextSelection() {
+            document.getElementById('terminal-container').style.webkitUserSelect = "none";
+            document.getElementById('terminal-container').style.userSelect = "none";
+        }
+
+        // Handle text selection on long press for mobile devices
+        let touchTimeout;
+        document.getElementById('terminal-container').addEventListener('touchstart', (e) => {
+            touchTimeout = setTimeout(() => {
+                enableTextSelection();
+            }, 500); // Trigger selection after a 500ms press
+        });
+
+        document.getElementById('terminal-container').addEventListener('touchend', () => {
+            clearTimeout(touchTimeout);
+            disableTextSelection(); // Revert after selection
         });
 
         // Initially disable text selection
