@@ -1,0 +1,30 @@
+{
+  "name": "web-terminal",
+  "description": "A web-based terminal using Node.js, Express, WebSockets, and xterm.js",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "express": "",
+    "http": "",
+    "ws": "",
+    "node-pty": "",
+    "multer": "",
+    "mime-types": "",
+    "path": "",
+    "fs": ""
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "keywords": [
+    "terminal",
+    "websocket",
+    "nodejs",
+    "express",
+    "xterm"
+  ],
+  "author": "",
+  "license": "MIT"
+}
